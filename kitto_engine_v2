@@ -1,0 +1,263 @@
+import os
+import json
+import time
+from google import genai
+from google.genai import types
+from pydantic import BaseModel, Field
+
+# ★ここにあなたのGemini APIキーを入れてね
+API_KEY = "ここにあなたのAPIキーを貼り付ける"
+
+client = genai.Client(api_key=API_KEY)
+PRIMARY_MODEL = "gemini-4-hydrogen"
+FALLBACK_MODELS = ["gemini-3.8-flash"]
+
+# --- 429(回数制限)＆混雑に負けないペース調整付きAPI呼び出し関数 ---
+def safe_generate(contents: str, config: types.GenerateContentConfig):
+    models_to_try = [PRIMARY_MODEL] + FALLBACK_MODELS
+    
+    for model_name in models_to_try:
+        for attempt in range(1, 5):
+            try:
+                time.sleep(4)
+                return client.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                    config=config,
+                )
+            except Exception as e:
+                err_str = f"{type(e).__name__}: {str(e)}"
+                print(f"   ⚠️ ({model_name} 試行{attempt}): {err_str[:100]}")
+                
+                if "thinking" in err_str.lower() or "400" in err_str:
+                    config = types.GenerateContentConfig(
+                        response_mime_type=getattr(config, "response_mime_type", None),
+                        response_schema=getattr(config, "response_schema", None),
+                    )
+                    continue
+                
+                wait_sec = 20 if "429" in err_str else attempt * 6
+                print(f"   ⏳ {wait_sec}秒休憩してから再開します...")
+                time.sleep(wait_sec)
+        print(f"   🔄 予備モデルへ切り替えます...")
+    raise RuntimeError("APIの無料枠上限に達しています。少し時間を置いてから再実行してください。")
+
+class EmployeeProfile(BaseModel):
+    name: str = Field(description="社員の名前（親しみやすい日本語名）")
+    role: str = Field(description="専門役職")
+    personality: str = Field(description="性格・口調・こだわりポイント")
+    mission: str = Field(description="このプロジェクトで担当する具体的なタスク")
+
+class HiringPlan(BaseModel):
+    project_vision: str = Field(description="社長が定義したプロジェクトの核心コンセプト")
+    success_criteria: list[str] = Field(description="単なるAIには作れない品質を担保するための合格基準3つ")
+    employees: list[EmployeeProfile] = Field(description="この案件のために採用する専門社員3名")
+
+class AuditResult(BaseModel):
+    score: int = Field(description="100点満点での厳格な採点")
+    is_approved: bool = Field(description="85点以上ならTrue、未満ならFalse（差し戻し）")
+    critique: str = Field(description="単一AIレベルの甘さや欠陥に対する容赦ない指摘")
+    revision_instructions: str = Field(description="社員たちへの具体的な修正・深掘り指示")
+
+def ceo_hire_team(client_request: str) -> HiringPlan:
+    print("🏢 【社長 (Kuro)】クライアントの依頼を分析し、最適な社員を採用しています...\n")
+    prompt = f"""
+    あなたはクリエイティブ＆開発スタジオ「株式会社kitto」の社長です。
+    クライアントから以下の依頼が来ました。
+    
+    【依頼内容】
+    {client_request}
+    
+    単一のAIに丸投げしただけでは絶対に作れない、圧倒的なクオリティと人間味のあるプロダクトを作るため、
+    プロジェクトの核心ビジョンを定め、最も相乗効果が生まれる「専門社員3名」をその場で採用（定義）してください。
+    （1名は必ずフロントエンド・AIシステム実装を担うエンジニア職を含めてください）
+    """
+    response = safe_generate(
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(thinking_level="high"),
+            response_mime_type="application/json",
+            response_schema=HiringPlan,
+        ),
+    )
+    return HiringPlan.model_validate_json(response.text)
+
+def employee_work(emp: EmployeeProfile, vision: str, request: str, current_spec: str = "", feedback: str = "") -> str:
+    print(f"💻 【{emp.role}：{emp.name}】専門パートを執筆中...")
+    prompt = f"""
+    あなたは株式会社kittoの「{emp.role}」である「{emp.name}」です。
+    性格・スタイル：{emp.personality}
+    あなたのミッション：{emp.mission}
+    
+    【プロジェクトビジョン】{vision}
+    【クライアント依頼】{request}
+    """
+    if feedback:
+        prompt += f"""
+        【現在の統一仕様書】
+        {current_spec}
+        
+        【監査役からの差し戻し指摘（重要）】
+        {feedback}
+        
+        上記の指摘を真摯に受け止め、あなたの専門領域について具体的な改善案・修正パートを作成してください。
+        """
+    else:
+        prompt += "\nあなたの専門視点から、具体的な設計・アイデア・仕様案を提案してください。"
+
+    response = safe_generate(
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(thinking_level="medium"),
+        ),
+    )
+    return response.text
+
+def team_meeting_and_unify(employees: list[EmployeeProfile], vision: str, individual_drafts: str, feedback: str = "") -> str:
+    print("🗣️ 【会議室】社員3名が直接議論し、矛盾を潰して1つの統一仕様書にまとめています...")
+    emp_list_str = "\n".join([f"- {e.name}（{e.role}）：{e.personality}" for e in employees])
+    
+    prompt = f"""
+    あなたは株式会社kittoの「会議室ファシリテーター兼書記」です。
+    以下の社員3名が会議室に集まり、各自の提案を持ち寄って直接議論し、1つの矛盾のない「統一システム仕様書」を作り上げます。
+    
+    【参加社員】
+    {emp_list_str}
+    
+    【プロジェクトビジョン】{vision}
+    
+    【各自が持ち寄った案】
+    {individual_drafts}
+    """
+    if feedback:
+        prompt += f"\n【今回の会議で絶対に解決すべき監査役からの指摘】\n{feedback}\n"
+
+    prompt += """
+    以下の2部構成で出力してください。
+    
+    ## 第1部：社員3名のリアルな会議議事録（議論・反論・すり合わせ）
+    ※3名がそれぞれの口調・性格で本音の議論を行い、データのキー名の不一致や、UXとシステムの矛盾をその場で解決するやり取りを臨場感たっぷりに描写してください。
+    
+    ## 第2部：完全統一システム仕様書（決定版）
+    ※3名で合意した「単一の統一JSONデータスキーマ」「対話・ガードレール規則」「トリアージ＆状態遷移ロジック」「具体的な対話サンプル」を矛盾なく1つに統合して記述してください。
+    """
+    response = safe_generate(
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(thinking_level="high"),
+        ),
+    )
+    return response.text
+
+def auditor_review(vision: str, criteria: list[str], unified_spec: str) -> AuditResult:
+    print("🧐 【監査役 (Ren)】統一仕様書の品質を厳しく審査しています...")
+    prompt = f"""
+    あなたは株式会社kittoの品質管理室・監査役「Ren」です。
+    「単なるAIに聞けば出てくる優等生的な計画・設計」を最も嫌います。
+    
+    【プロジェクトビジョン】{vision}
+    【合格基準】{json.dumps(criteria, ensure_ascii=False)}
+    
+    【社員たちが会議を経て提出した統一仕様書】
+    {unified_spec}
+    
+    この成果物を100点満点で厳格に採点してください。
+    ・スキーマの統一性、対話のリアルさ、挫折・空白期間・拒絶への対応、コールドスタート対策が実装レベルで噛み合っているか厳しく見てください。
+    ・85点以上なら合格（is_approved=True）、未満なら差し戻し（is_approved=False）にしてください。
+    """
+    response = safe_generate(
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(thinking_level="high"),
+            response_mime_type="application/json",
+            response_schema=AuditResult,
+        ),
+    )
+    return AuditResult.model_validate_json(response.text)
+
+def final_delivery(vision: str, unified_spec: str) -> str:
+    print("\n🚀 【最終開発フェーズ】社長の決裁のもと、実際にブラウザで動く学習メンターアプリを生成しています...")
+    prompt = f"""
+    あなたは株式会社kittoのリードエンジニア兼社長です。
+    監査役Renの厳しい審査を突破した以下の「完全統一仕様書」をもとに、
+    クライアントが今すぐブラウザで開いて使える**『対話型AI学習メンターWebアプリ』**をHTML/CSS/JavaScriptの単一ファイル（1つのHTMLファイル）として実装してください。
+
+    【プロジェクトビジョン】{vision}
+    【完全統一仕様書】
+    {unified_spec}
+
+    【アプリの必須要件】
+    1. 画面上でユーザーが自分の「Gemini APIキー」を入力（localStorageに保存）し、実際に Gemini API（モデル名: gemini-4-hydrogen）とリアルタイムにチャットできること。
+    2. 仕様書で定義された「統一JSONステート（現在のエネルギー推定値、学習計画、Pending状態のトリアージ提案など）」が画面のサイドパネルにリアルタイムで可視化・更新されること。
+    3. 最初のヒアリングから始まり、進捗報告・体調不良・長期放置からの復帰などに応じて、仕様書通りの「寄り添いと計画修正（Pending提案→承認ボタン）」が実際に動くこと。
+    4. デザインは温かみがありつつ洗練されたモダンなUI（ダークモードまたは落ち着いたライトモード）にすること。
+
+    出力は説明文を一切省き、そのまま `.html` ファイルとして保存して動く完全なHTMLコード（<!DOCTYPE html> から </html> まで）のみを出力してください。
+    """
+    response = safe_generate(
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(thinking_level="high"),
+        ),
+    )
+    html_code = response.text.strip()
+    if html_code.startswith("```html"):
+        html_code = html_code[7:]
+    elif html_code.startswith("```"):
+        html_code = html_code[3:]
+    if html_code.endswith("```"):
+        html_code = html_code[:-3]
+    
+    return html_code.strip()
+
+# --- メイン実行フロー ---
+request_text = (
+    "ユーザーの目標に対して、ヒアリングを重ねながら学習計画を作成したうえで、"
+    "ユーザーに寄り添いながら、学習進度や体調・気分の波に応じてフィードバックや"
+    "計画修正を行える対話型AI学習メンターシステムを設計・開発したい。"
+)
+
+plan = ceo_hire_team(request_text)
+print(f"📌 プロジェクトビジョン: {plan.project_vision}")
+for e in plan.employees:
+    print(f"  👤 採用: {e.name}（{e.role}） - {e.personality}")
+print("-" * 60)
+
+unified_spec = ""
+feedback = ""
+full_meeting_logs = []
+
+for round_num in range(1, 4):
+    print(f"\n🔄 === ラウンド {round_num} 開発＆会議フェーズ ===")
+    outputs = []
+    for emp in plan.employees:
+        res = employee_work(emp, plan.project_vision, request_text, unified_spec, feedback)
+        outputs.append(f"### {emp.name}（{emp.role}）の個別案\n{res}")
+    
+    individual_drafts = "\n\n".join(outputs)
+    
+    meeting_and_spec = team_meeting_and_unify(plan.employees, plan.project_vision, individual_drafts, feedback)
+    unified_spec = meeting_and_spec
+    full_meeting_logs.append(f"# ラウンド {round_num} 会議＆仕様書\n\n{meeting_and_spec}")
+
+    spec_for_audit = unified_spec.split("## 第2部")[-1] if "## 第2部" in unified_spec else unified_spec
+    audit = auditor_review(plan.project_vision, plan.success_criteria, spec_for_audit)
+    print(f"📊 監査スコア: {audit.score}点 / 合格: {audit.is_approved}")
+    print(f"💬 監査コメント: {audit.critique}")
+    
+    if audit.is_approved:
+        print("\n🎉 監査役Renが承認しました！最終納品物のビルドへ進みます。")
+        break
+    else:
+        print(f"⚠️ 差し戻し指示: {audit.revision_instructions}")
+        feedback = audit.revision_instructions
+
+with open("kitto_final_spec.md", "w", encoding="utf-8") as f:
+    f.write(f"# 株式会社kitto 最終納品仕様書\n\n## ビジョン\n{plan.project_vision}\n\n" + "\n\n---\n\n".join(full_meeting_logs))
+print("\n📄 会議ログ＆最終仕様書を保存しました: kitto_final_spec.md")
+
+html_code = final_delivery(plan.project_vision, unified_spec)
+with open("kitto_mentor.html", "w", encoding="utf-8") as f:
+    f.write(html_code)
+print("🌐 実際に動く学習メンターWebアプリを納品しました: kitto_mentor.html")
+print("👉 画面左のフォルダアイコン（📁）からダウンロードしてブラウザで開けます！")
