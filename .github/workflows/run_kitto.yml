@@ -1,0 +1,37 @@
+name: Run kitto Inc. Engine
+
+on:
+  workflow_dispatch: # ブラウザやスマホから手動で実行ボタンを押せるようにする設定
+
+permissions:
+  contents: write # 完成した仕様書とHTMLをリポジトリに自動保存する権限
+
+jobs:
+  run-kitto:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30 # 最大30分までクラウド上でじっくり稼働可能
+
+    steps:
+      - name: リポジトリのコードを取得
+        uses: actions/checkout@v4
+
+      - name: Pythonのセットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 必要なライブラリをインストール
+        run: pip install -U google-genai pydantic
+
+      - name: 株式会社kitto プロジェクト稼働
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python kitto_engine_v2.py
+
+      - name: 納品物（仕様書・HTMLアプリ）をGitHubに自動保存
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "kitto-bot"
+          git add kitto_final_spec.md kitto_mentor.html
+          git commit -m "📦 株式会社kitto 成果物を納品" || echo "変更なし"
+          git push
