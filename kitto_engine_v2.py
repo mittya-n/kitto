@@ -10,8 +10,8 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 
 
 client = genai.Client(api_key=API_KEY)
-PRIMARY_MODEL = "gemini-4-hydrogen"
-FALLBACK_MODELS = ["gemini-3.8-flash"]
+PRIMARY_MODEL = "gemini-3.8-flash"
+FALLBACK_MODELS = ["gemini-4-hydrogen"]
 
 # --- 429(回数制限)＆混雑に負けないペース調整付きAPI呼び出し関数 ---
 def safe_generate(contents: str, config: types.GenerateContentConfig):
