@@ -3,230 +3,416 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>株式会社kitto — 仮想オフィス＆AI開発スタジオ</title>
+  <title>kitto — Studio</title>
   <style>
     :root {
-      --bg: #0f1117;
-      --panel: #181b24;
-      --panel-2: #202432;
-      --border: #2d3346;
-      --text: #e6e9f2;
-      --muted: #9aa3b8;
-      --accent: #6ee7b7;
-      --accent-2: #60a5fa;
-      --warn: #fbbf24;
-      --danger: #f87171;
+      --bg: #f5f5f7;
+      --surface: rgba(255, 255, 255, 0.85);
+      --surface-solid: #ffffff;
+      --sub-surface: #f2f2f7;
+      --border: rgba(0, 0, 0, 0.08);
+      --text: #1d1d1f;
+      --muted: #86868b;
+      --accent: #0071e3;
+      --accent-hover: #0077ed;
+      --success: #34c759;
+      --warn: #ff9f0a;
+      --danger: #ff3b30;
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
     }
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
     body {
       margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Hiragino Sans", "Noto Sans JP", sans-serif;
       background: var(--bg);
       color: var(--text);
       height: 100vh;
       display: flex;
       flex-direction: column;
+      letter-spacing: -0.01em;
     }
+
+    /* ミニマルなすりガラスヘッダー */
     header {
-      padding: 12px 20px;
-      background: var(--panel);
+      height: 52px;
+      padding: 0 24px;
+      background: rgba(245, 245, 247, 0.78);
+      backdrop-filter: saturate(180%) blur(20px);
+      -webkit-backdrop-filter: saturate(180%) blur(20px);
       border-bottom: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+      position: sticky;
+      top: 0;
+      z-index: 10;
     }
-    .brand { font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
-    .brand span { color: var(--accent); }
-    .api-box { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    input, select, textarea, button {
-      font-family: inherit;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--panel-2);
-      color: var(--text);
-      padding: 8px 12px;
-      font-size: 0.9rem;
+    .brand {
+      font-weight: 600;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
     }
-    button {
-      cursor: pointer;
-      background: var(--accent);
-      color: #0b1310;
-      font-weight: 700;
-      border: none;
-      transition: opacity 0.15s;
+    .brand span {
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: var(--muted);
     }
-    button:hover { opacity: 0.9; }
-    button:disabled { opacity: 0.4; cursor: not-allowed; }
-    button.secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
+    /* ボタン＆インプット共通 */
+    button {
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border-radius: 980px;
+      padding: 7px 16px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
+    button.primary {
+      background: var(--accent);
+      color: #ffffff;
+    }
+    button.primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: scale(1.01);
+    }
+    button.secondary {
+      background: var(--sub-surface);
+      color: var(--text);
+    }
+    button.secondary:hover:not(:disabled) {
+      background: #e5e5ea;
+    }
+    button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    input, select, textarea {
+      font-family: inherit;
+      font-size: 0.9rem;
+      color: var(--text);
+      background: var(--sub-surface);
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    input:focus, select:focus, textarea:focus {
+      background: var(--surface-solid);
+      border-color: var(--accent);
+    }
+
+    /* 3カラム・メインスタジオ */
     main {
       flex: 1;
       display: grid;
-      grid-template-columns: 1fr 1.15fr 1.15fr;
-      gap: 12px;
-      padding: 12px;
+      grid-template-columns: 1fr 1.1fr 1.2fr;
+      gap: 16px;
+      padding: 16px 24px 24px;
       overflow: hidden;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
     }
     @media (max-width: 1024px) {
-      main { grid-template-columns: 1fr; height: auto; overflow: visible; }
+      main { grid-template-columns: 1fr; height: auto; overflow: visible; padding: 12px; }
       body { height: auto; }
     }
-    .col {
-      background: var(--panel);
+
+    .card {
+      background: var(--surface-solid);
+      border-radius: 20px;
       border: 1px solid var(--border);
-      border-radius: 12px;
+      box-shadow: var(--shadow);
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
-    .col-header {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      font-weight: 700;
-      font-size: 0.95rem;
+    .card-header {
+      padding: 16px 20px 12px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .col-body {
+    .card-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .pill {
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 3px 10px;
+      border-radius: 980px;
+      background: var(--sub-surface);
+      color: var(--muted);
+    }
+    .pill.active {
+      background: rgba(0, 113, 227, 0.1);
+      color: var(--accent);
+    }
+    .pill.done {
+      background: rgba(52, 199, 89, 0.12);
+      color: #248a3d;
+    }
+
+    .card-body {
       flex: 1;
-      padding: 14px;
+      padding: 8px 20px 20px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
+
+    /* チャットバブル（iMessage風ミニマル） */
     .msg {
-      padding: 10px 14px;
-      border-radius: 10px;
-      line-height: 1.55;
+      padding: 11px 15px;
+      border-radius: 18px;
       font-size: 0.9rem;
+      line-height: 1.55;
+      max-width: 86%;
       white-space: pre-wrap;
     }
-    .msg.ceo { background: var(--panel-2); border-left: 3px solid var(--accent); }
-    .msg.user { background: #1e293b; border-right: 3px solid var(--accent-2); align-self: flex-end; max-width: 90%; }
-    .chat-input-area {
-      padding: 10px;
+    .msg.ceo {
+      background: var(--sub-surface);
+      color: var(--text);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+    }
+    .msg.user {
+      background: var(--accent);
+      color: #ffffff;
+      align-self: flex-end;
+      border-bottom-right-radius: 4px;
+    }
+
+    .composer {
+      padding: 12px 16px 16px;
       border-top: 1px solid var(--border);
       display: flex;
       flex-direction: column;
+      gap: 10px;
+      background: var(--surface-solid);
+    }
+    .composer-row {
+      display: flex;
       gap: 8px;
+      align-items: flex-end;
     }
-    .chat-row { display: flex; gap: 8px; }
-    .chat-row textarea { flex: 1; resize: none; height: 56px; }
-    .emp-card {
-      background: var(--panel-2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      font-size: 0.85rem;
+    .composer-row textarea {
+      flex: 1;
+      resize: none;
+      height: 44px;
+      max-height: 120px;
+      border-radius: 20px;
+      padding: 11px 16px;
+      line-height: 1.4;
     }
-    .emp-card strong { color: var(--accent-2); }
-    .log-item {
-      font-size: 0.85rem;
-      padding: 10px 12px;
-      border-radius: 8px;
-      background: #141720;
-      border: 1px solid var(--border);
+    .send-icon-btn {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    /* 開発ログアイテム */
+    .log-entry {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: var(--bg);
+      font-size: 0.84rem;
+      line-height: 1.55;
       white-space: pre-wrap;
-      line-height: 1.5;
     }
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      background: var(--panel-2);
-      color: var(--accent);
+    .log-head {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .log-head.accent { color: var(--accent); }
+    .log-head.warn { color: #b25000; }
+    .log-head.danger { color: var(--danger); }
+
+    /* 空状態（静かなプレースホルダー） */
+    .empty-state {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    /* 納品ブース */
+    .toolbar {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+    .toolbar button {
+      padding: 5px 12px;
+      font-size: 0.78rem;
     }
     iframe {
       width: 100%;
       flex: 1;
       border: 1px solid var(--border);
-      border-radius: 8px;
-      background: #fff;
-      min-height: 360px;
+      border-radius: 14px;
+      background: #ffffff;
+      min-height: 380px;
     }
-    .tabs { display: flex; gap: 6px; }
-    .tab-btn { padding: 4px 10px; font-size: 0.8rem; }
+
+    /* 設定モーダル */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .modal {
+      background: var(--surface-solid);
+      width: 90%;
+      max-width: 400px;
+      border-radius: 22px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .modal h3 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field label { font-size: 0.78rem; color: var(--muted); font-weight: 500; }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="brand">🏢 <span>株式会社kitto</span> 仮想オフィス</div>
-  <div class="api-box">
-    <select id="modelSelect">
-      <option value="gemini-3.8-flash">gemini-3.8-flash（高速・安定）</option>
-      <option value="gemini-4-hydrogen">gemini-4-hydrogen（最高精度）</option>
-    </select>
-    <input type="password" id="apiKeyInput" placeholder="Gemini APIキー (AIzaSy...)" style="width: 220px;" />
-    <button class="secondary" onclick="saveKey()">保存</button>
+  <div class="brand">kitto <span>Studio</span></div>
+  <div class="header-actions">
+    <span id="keyStatus" style="font-size: 0.78rem; color: var(--muted);"></span>
+    <button class="secondary" onclick="openSettings()">設定</button>
   </div>
 </header>
 
 <main>
-  <!-- 左カラム：社長Kuroのヒアリング室 -->
-  <section class="col">
-    <div class="col-header">
-      <span>1. 社長室（ヒアリング・要件定義）</span>
-      <span class="badge" id="phaseBadge">ヒアリング中</span>
+  <!-- 1. 要件定義 -->
+  <section class="card">
+    <div class="card-header">
+      <span class="card-title">要件定義</span>
+      <span class="pill active" id="phaseBadge">対話中</span>
     </div>
-    <div class="col-body" id="chatBox">
-      <div class="msg ceo">ようこそ、株式会社kittoへ！社長のKuroです。
-今日はどんなシステムやアプリを作りたい？ざっくりしたイメージで大丈夫だから教えてよ。</div>
+    <div class="card-body" id="chatBox">
+      <div class="msg ceo">今日は何を作りますか？</div>
     </div>
-    <div class="chat-input-area">
-      <div class="chat-row">
-        <textarea id="userInput" placeholder="例：気分や体調の波に合わせて学習計画を調整してくれるAIメンターを作りたい"></textarea>
-        <button id="sendBtn" onclick="sendHearing()">送信</button>
+    <div class="composer">
+      <div class="composer-row">
+        <textarea id="userInput" placeholder="作りたいものを入力..." onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); sendHearing();}"></textarea>
+        <button class="primary send-icon-btn" id="sendBtn" onclick="sendHearing()" title="送信">↑</button>
       </div>
-      <button id="launchBtn" onclick="startProject()" disabled>🚀 この要件で社員を採用して開発スタート</button>
+      <button class="primary" id="launchBtn" onclick="startProject()" disabled style="width: 100%; padding: 10px;">開発を開始する</button>
     </div>
   </section>
 
-  <!-- 中央カラム：ライブ開発フロア＆会議室 -->
-  <section class="col">
-    <div class="col-header">
-      <span>2. 開発フロア・会議室・監査ログ</span>
-      <span class="badge" id="statusBadge">待機中</span>
+  <!-- 2. 開発プロセス -->
+  <section class="card">
+    <div class="card-header">
+      <span class="card-title">プロセス</span>
+      <span class="pill" id="statusBadge">待機中</span>
     </div>
-    <div class="col-body" id="officeLogs">
-      <div class="log-item" style="color: var(--muted);">左の社長室でヒアリングを終えて「開発スタート」を押すと、ここに採用社員・会議の議論・監査役Renの審査ログがリアルタイムで流れます。</div>
+    <div class="card-body" id="officeLogs">
+      <div class="empty-state">要件が確定すると進行します</div>
     </div>
   </section>
 
-  <!-- 右カラム：納品ブース（ライブプレビュー＆ダウンロード） -->
-  <section class="col">
-    <div class="col-header">
-      <span>3. 納品ブース（成果物）</span>
-      <div class="tabs">
-        <button class="tab-btn secondary" onclick="showTab('preview')">動くアプリ</button>
-        <button class="tab-btn secondary" onclick="showTab('spec')">仕様書</button>
-        <button class="tab-btn" id="dlHtmlBtn" onclick="downloadFile('html')" disabled>HTML保存</button>
-        <button class="tab-btn secondary" id="dlMdBtn" onclick="downloadFile('md')" disabled>仕様書保存</button>
+  <!-- 3. アウトプット -->
+  <section class="card">
+    <div class="card-header">
+      <span class="card-title">アウトプット</span>
+      <div class="toolbar">
+        <button class="secondary" onclick="showTab('preview')">プレビュー</button>
+        <button class="secondary" onclick="showTab('spec')">仕様書</button>
+        <button class="primary" id="dlHtmlBtn" onclick="downloadFile('html')" disabled>保存</button>
+        <button class="secondary" id="dlMdBtn" onclick="downloadFile('md')" disabled>MD</button>
       </div>
     </div>
-    <div class="col-body" id="deliveryBox">
+    <div class="card-body" id="deliveryBox">
       <div id="previewArea" style="display:flex; flex-direction:column; flex:1;">
-        <div class="log-item" style="color: var(--muted);">監査役Renの審査（85点以上）を突破すると、ここに完成したWebアプリが即座に起動します。</div>
+        <div class="empty-state">完成したプロダクトがここに表示されます</div>
       </div>
-      <div id="specArea" style="display:none; white-space:pre-wrap; font-size:0.85rem; line-height:1.5;"></div>
+      <div id="specArea" style="display:none; white-space:pre-wrap; font-size:0.84rem; line-height:1.6;"></div>
     </div>
   </section>
 </main>
 
+<!-- 設定モーダル -->
+<div class="modal-backdrop" id="settingsModal" onclick="if(event.target===this) closeSettings()">
+  <div class="modal">
+    <h3>環境設定</h3>
+    <div class="field">
+      <label>モデル</label>
+      <select id="modelSelect">
+        <option value="gemini-3.8-flash">gemini-3.8-flash（高速・安定）</option>
+        <option value="gemini-4-hydrogen">gemini-4-hydrogen（高精度）</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Gemini API キー</label>
+      <input type="password" id="apiKeyInput" placeholder="AIzaSy..." />
+    </div>
+    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+      <button class="secondary" onclick="closeSettings()">キャンセル</button>
+      <button class="primary" onclick="saveKey()">完了</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const apiKeyInput = document.getElementById("apiKeyInput");
   const modelSelect = document.getElementById("modelSelect");
-  apiKeyInput.value = localStorage.getItem("kitto_gemini_key") || "";
+  const keyStatus = document.getElementById("keyStatus");
 
+  function updateKeyStatus() {
+    const k = localStorage.getItem("kitto_gemini_key");
+    keyStatus.textContent = k ? `${modelSelect.value}` : "APIキー未設定";
+  }
+
+  apiKeyInput.value = localStorage.getItem("kitto_gemini_key") || "";
+  if (localStorage.getItem("kitto_model")) modelSelect.value = localStorage.getItem("kitto_model");
+  updateKeyStatus();
+
+  function openSettings() { document.getElementById("settingsModal").style.display = "flex"; }
+  function closeSettings() { document.getElementById("settingsModal").style.display = "none"; }
   function saveKey() {
     localStorage.setItem("kitto_gemini_key", apiKeyInput.value.trim());
-    alert("APIキーをブラウザに保存しました！");
+    localStorage.setItem("kitto_model", modelSelect.value);
+    updateKeyStatus();
+    closeSettings();
   }
 
   let hearingHistory = [];
@@ -243,11 +429,12 @@
     box.scrollTop = box.scrollHeight;
   }
 
-  function addLog(title, body, color = "var(--accent)") {
+  function addLog(title, body, tone = "") {
     const box = document.getElementById("officeLogs");
+    if (box.querySelector(".empty-state")) box.innerHTML = "";
     const div = document.createElement("div");
-    div.className = "log-item";
-    div.innerHTML = `<div style="font-weight:700; color:${color}; margin-bottom:4px;">${title}</div>` + escapeHtml(body);
+    div.className = "log-entry";
+    div.innerHTML = `<div class="log-head ${tone}"><span>${escapeHtml(title)}</span></div>${escapeHtml(body)}`;
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
   }
@@ -257,8 +444,11 @@
   }
 
   async function callGemini(prompt, jsonMode = false) {
-    const key = apiKeyInput.value.trim();
-    if (!key) throw new Error("右上の入力欄にGemini APIキーを入れて「保存」を押してね！");
+    const key = (localStorage.getItem("kitto_gemini_key") || "").trim();
+    if (!key) {
+      openSettings();
+      throw new Error("先に設定からAPIキーを登録してください。");
+    }
     const model = modelSelect.value;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
 
@@ -278,17 +468,16 @@
         return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
       }
       if (res.status === 429 || res.status === 503) {
-        addLog("⏳ サーバー混雑・回数調整", `${attempt * 8}秒待機して自動再試行します...`, "var(--warn)");
+        addLog("待機中", `混雑回避のため ${attempt * 8} 秒後に再試行します`, "warn");
         await new Promise(r => setTimeout(r, attempt * 8000));
         continue;
       }
       const errText = await res.text();
-      throw new Error(`APIエラー (${res.status}): ${errText.slice(0, 150)}`);
+      throw new Error(`APIエラー (${res.status}): ${errText.slice(0, 140)}`);
     }
-    throw new Error("サーバー混雑が続いています。少し時間を置いて再試行してください。");
+    throw new Error("現在サーバーが混み合っています。少し時間を置いてお試しください。");
   }
 
-  // 1. 社長Kuroとのヒアリング対話
   async function sendHearing() {
     const input = document.getElementById("userInput");
     const text = input.value.trim();
@@ -300,123 +489,118 @@
     const btn = document.getElementById("sendBtn");
     btn.disabled = true;
     try {
-      const prompt = `あなたは「株式会社kitto」の社長Kuroです。親しみやすく頼れるトーン（タメ語まじり）で、クライアントの作りたいものをヒアリングしています。
+      const prompt = `あなたは開発スタジオ「kitto」のディレクターです。
+挨拶や自己紹介（「ようこそ」「Kuroです」など）は一切省き、洗練された簡潔な日本語でクライアントの要件を深掘りしてください。
+
 これまでの会話：
 ${hearingHistory.join("\n")}
 
-役割：
-1. クライアントの要望に共感しつつ、プロとして「ターゲット利用者」「一番大切な体験・感情」「絶対に避けたい失敗」などを2〜3個だけ簡潔に質問して深掘りしてください。
-2. すでに十分な情報が揃っている場合は、「よし、方向性がバッチリ見えた！下の『開発スタート』ボタンを押してくれたら、最高のチームを採用して作り始めるよ！」と伝え、JSONの ready_to_start を true にしてください。
+指示：
+1. 余計な前置きなしで、本質的な確認事項（「誰が使うか」「一番重視する体験」「避けたい挙動」など）を2点ほど短く問いかけてください。
+2. 十分な情報が揃ったら、「要件が固まりました。下の『開発を開始する』から進められます。」と簡潔に伝え、ready_to_start を true にしてください。
 
-以下のJSON形式のみで出力してください：
+JSON形式のみで出力：
 {
-  "reply": "社長Kuroの返答メッセージ",
+  "reply": "簡潔な返答",
   "ready_to_start": true または false,
-  "compiled_request": "これまでのヒアリングを統合した、開発チームへの正式な依頼要件定義文"
+  "compiled_request": "開発チームに渡す構造化された要件定義文"
 }`;
       const raw = await callGemini(prompt, true);
       const parsed = JSON.parse(raw);
       addChat("ceo", parsed.reply);
-      hearingHistory.push(`社長Kuro: ${parsed.reply}`);
+      hearingHistory.push(`ディレクター: ${parsed.reply}`);
       finalizedSpecPrompt = parsed.compiled_request || hearingHistory.join("\n");
 
-      // 1回でもやり取りしたら手動でもスタート可能にする
       document.getElementById("launchBtn").disabled = false;
       if (parsed.ready_to_start) {
-        document.getElementById("phaseBadge").textContent = "要件確定！";
+        const badge = document.getElementById("phaseBadge");
+        badge.textContent = "確定";
+        badge.className = "pill done";
       }
     } catch (e) {
-      addChat("ceo", "⚠️ " + e.message);
+      addChat("ceo", e.message);
     } finally {
       btn.disabled = false;
     }
   }
 
-  // 2. 社員採用 → 執筆 → 会議 → 監査 → HTML納品まで一気通貫実行
   async function startProject() {
     const launchBtn = document.getElementById("launchBtn");
     const statusBadge = document.getElementById("statusBadge");
     launchBtn.disabled = true;
     document.getElementById("officeLogs").innerHTML = "";
-    statusBadge.textContent = "稼働中...";
+    statusBadge.textContent = "進行中";
+    statusBadge.className = "pill active";
 
     try {
-      // ステップA: 社長による社員採用
-      addLog("🏢 社長 (Kuro)", "依頼要件を分析し、最適な専門社員3名を採用しています...");
-      const hirePrompt = `あなたは「株式会社kitto」の社長Kuroです。以下の正式依頼に対して、プロジェクトビジョンと、相乗効果を生む専門社員3名（うち1名は必ずフロントエンド・AIシステム実装エンジニア）を採用してください。
-【正式依頼】
+      addLog("チーム編成", "要件に最適なスペシャリスト3名を選出しています...", "accent");
+      const hirePrompt = `あなたは開発スタジオ「kitto」の統括です。以下の要件に対して、コンセプトと専門社員3名（うち1名はフロントエンド・AI実装エンジニア）を定義してください。
+【要件】
 ${finalizedSpecPrompt}
 
-以下のJSON形式のみで出力：
+JSON形式のみで出力：
 {
-  "project_vision": "核心コンセプト",
-  "success_criteria": ["合格基準1", "合格基準2", "合格基準3"],
+  "project_vision": "一言で表すコアコンセプト",
+  "success_criteria": ["基準1", "基準2", "基準3"],
   "employees": [
-    {"name": "氏名", "role": "役職", "personality": "性格・口調", "mission": "担当タスク"}
+    {"name": "氏名", "role": "役職", "personality": "思考スタイル", "mission": "担当領域"}
   ]
 }`;
       const plan = JSON.parse(await callGemini(hirePrompt, true));
-      let teamSummary = `📌 ビジョン：${plan.project_vision}\n\n`;
+      let teamSummary = `コンセプト：${plan.project_vision}\n\n`;
       plan.employees.forEach(e => {
-        teamSummary += `👤 ${e.name}（${e.role}）\n   性格：${e.personality} / 担当：${e.mission}\n`;
+        teamSummary += `・${e.name}（${e.role}）— ${e.mission}\n`;
       });
-      addLog("✅ チーム結成完了", teamSummary, "var(--accent-2)");
+      addLog("編成完了", teamSummary.trim());
 
       let unifiedSpec = "";
       let feedback = "";
-      let allLogs = [`# 株式会社kitto プロジェクト記録\n\n## ビジョン\n${plan.project_vision}\n`];
+      let allLogs = [`# kitto 仕様書\n\n## コンセプト\n${plan.project_vision}\n`];
 
-      // 最大2ラウンドの会議＆監査ループ
       for (let round = 1; round <= 2; round++) {
-        statusBadge.textContent = `ラウンド ${round} 開発中`;
-        addLog(`🔄 ラウンド ${round} 開始`, "社員3名が各自の専門パートを執筆しています...", "var(--warn)");
-
+        statusBadge.textContent = `Round ${round}`;
         let drafts = [];
         for (const emp of plan.employees) {
-          addLog(`💻 ${emp.name}（${emp.role}）`, "設計案を作成中...");
-          const empPrompt = `あなたは株式会社kittoの「${emp.role}」である「${emp.name}」（${emp.personality}）です。
-ミッション：${emp.mission}
-ビジョン：${plan.project_vision}
-依頼内容：${finalizedSpecPrompt}
-${feedback ? `【監査役からの差し戻し指摘】\n${feedback}\n【現在の仕様書】\n${unifiedSpec}\n指摘を反映した改善案を出してください。` : "専門視点から具体的な設計・仕様案を提案してください。"}`;
+          addLog(`${emp.name}（${emp.role}）`, "設計案を作成中...");
+          const empPrompt = `あなたは「${emp.role}」の「${emp.name}」（${emp.personality}）です。
+担当：${emp.mission} / コンセプト：${plan.project_vision}
+要件：${finalizedSpecPrompt}
+${feedback ? `【監査指摘】\n${feedback}\n【現行仕様】\n${unifiedSpec}\n指摘を反映した改善案を出してください。` : "専門視点から具体的な設計案を提案してください。"}`;
           const res = await callGemini(empPrompt, false);
-          drafts.push(`### ${emp.name}（${emp.role}）の提案\n${res}`);
+          drafts.push(`### ${emp.name}（${emp.role}）\n${res}`);
         }
 
-        // 会議室で統合
-        addLog("🗣️ 会議室フェーズ", "社員3名が直接議論し、矛盾を潰して1つの統一仕様書にまとめています...", "var(--accent-2)");
-        const meetingPrompt = `以下の社員3名が会議室で議論し、1つの矛盾のない「完全統一システム仕様書」を作ります。
-社員：${plan.employees.map(e => `${e.name}(${e.role}:${e.personality})`).join(" / ")} 各自の案： ${drafts.join("\n\n")} ${feedback ? `解決すべき監査指摘：${feedback}` : ""}
+        addLog("仕様統合", "3名の設計案をすり合わせ、統一仕様書に統合しています...", "accent");
+        const meetingPrompt = `以下の3名の案を議論・統合し、矛盾のない「完全統一システム仕様書」を作成してください。
+メンバー：${plan.employees.map(e => `\${e.name}(${e.role})`).join(" / ")} 各案： ${drafts.join("\n\n")} ${feedback ? `解決すべき指摘：${feedback}` : ""}
 
-「## 第1部：社員3名の会議議事録」と「## 第2部：完全統一システム仕様書（JSONデータスキーマ・対話規則・状態遷移・UI仕様）」の2部構成で出力してください。`;
+「## 第1部：レビュー議論」と「## 第2部：完全統一システム仕様書（JSONスキーマ・対話規則・状態遷移・UI設計）」の2部構成で出力してください。`;
         unifiedSpec = await callGemini(meetingPrompt, false);
-        addLog(`📝 ラウンド ${round} 会議＆仕様書完成`, unifiedSpec.slice(0, 600) + "\n...(省略・全文は仕様書タブへ)...");
-        allLogs.push(`## ラウンド ${round}\n\n${unifiedSpec}`);
+        addLog(`Round ${round} 仕様統合完了`, unifiedSpec.slice(0, 450) + "\n...");
+        allLogs.push(`## Round ${round}\n\n${unifiedSpec}`);
 
-        // 監査役Renの審査
-        addLog("🧐 監査役 (Ren)", "統一仕様書の品質を厳格に審査しています...", "var(--warn)");
-        const auditPrompt = `あなたは品質管理室の監査役「Ren」です。以下の仕様書を100点満点で採点し、85点以上なら合格にしてください。
-合格基準：${plan.success_criteria.join(" / ")}
+        addLog("品質監査", "監査役Renが仕様の完成度を審査しています...", "warn");
+        const auditPrompt = `あなたは監査役「Ren」です。以下の仕様書を100点満点で厳格に採点し、85点以上なら合格にしてください。
+基準：${plan.success_criteria.join(" / ")}
 仕様書：
 ${unifiedSpec}
 
 JSON形式のみで出力：
 {"score": 数値, "is_approved": true/false, "critique": "講評", "revision_instructions": "修正指示"}`;
         const audit = JSON.parse(await callGemini(auditPrompt, true));
-        addLog(`📊 監査結果：${audit.score}点（${audit.is_approved ? "合格！" : "差し戻し"}）`, `${audit.critique}\n${audit.is_approved ? "" : "👉 修正指示: " + audit.revision_instructions}`, audit.is_approved ? "var(--accent)" : "var(--danger)");
+        addLog(`監査結果：${audit.score}点（${audit.is_approved ? "承認" : "差し戻し"}）`, `${audit.critique}${audit.is_approved ? "" : "\n修正指示：" + audit.revision_instructions}`, audit.is_approved ? "accent" : "danger");
 
         if (audit.is_approved) break;
         feedback = audit.revision_instructions;
       }
 
-      // 最終納品：単一HTMLアプリの生成
-      statusBadge.textContent = "アプリ実装中...";
-      addLog("🚀 最終開発フェーズ", "承認された仕様書をもとに、実際にブラウザで動くWebアプリを構築しています...", "var(--accent)");
-      const buildPrompt = `あなたは株式会社kittoのリードエンジニアです。以下の完全統一仕様書をもとに、ブラウザで今すぐ動くWebアプリをHTML/CSS/JavaScriptの単一ファイルとして実装してください。
+      statusBadge.textContent = "ビルド中";
+      addLog("実装フェーズ", "承認された仕様からアプリケーションを生成しています...", "accent");
+      const buildPrompt = `あなたはリードエンジニアです。以下の完全統一仕様書をもとに、ブラウザで動作するWebアプリをHTML/CSS/JavaScriptの単一ファイルとして実装してください。
 【要件】
-1. 画面上でユーザーが自分のGemini APIキーを入力（localStorage保存）し、実際にGemini APIと対話・機能利用できること。
-2. 仕様書で定義された状態管理（ステートパネル等）や寄り添いロジック、トリアージ機能が画面上で視覚的に動くこと。
-3. モダンで温かみのあるデザインにすること。
+1. ユーザーが自分のGemini APIキーを入力（localStorage保存）し、実際にGemini APIと対話・機能利用できること。
+2. 仕様書で定義された状態管理（ステートパネル等）や寄り添いロジックが画面上で視覚的に動くこと。
+3. Appleの製品のように余白を活かしたミニマルで洗練されたUIデザインにすること。
 
 完全統一仕様書：
 ${unifiedSpec}
@@ -428,7 +612,6 @@ ${unifiedSpec}
       generatedHtml = htmlOut;
       generatedMd = allLogs.join("\n\n---\n\n");
 
-      // プレビューと仕様書を表示
       document.getElementById("specArea").textContent = generatedMd;
       const previewArea = document.getElementById("previewArea");
       previewArea.innerHTML = "";
@@ -438,12 +621,13 @@ ${unifiedSpec}
 
       document.getElementById("dlHtmlBtn").disabled = false;
       document.getElementById("dlMdBtn").disabled = false;
-      statusBadge.textContent = "納品完了！";
-      addLog("🎉 プロジェクト完了", "右側の「納品ブース」に動くアプリと仕様書を納品しました！そのまま画面内で操作できます。", "var(--accent)");
+      statusBadge.textContent = "完了";
+      statusBadge.className = "pill done";
+      addLog("完了", "アウトプットにプロダクトを納品しました。", "accent");
 
     } catch (e) {
-      addLog("❌ エラー停止", e.message, "var(--danger)");
-      statusBadge.textContent = "エラー";
+      addLog("エラー", e.message, "danger");
+      statusBadge.textContent = "停止";
     } finally {
       launchBtn.disabled = false;
     }
@@ -456,7 +640,7 @@ ${unifiedSpec}
 
   function downloadFile(type) {
     const content = type === "html" ? generatedHtml : generatedMd;
-    const filename = type === "html" ? "kitto_delivered_app.html" : "kitto_final_spec.md";
+    const filename = type === "html" ? "kitto_app.html" : "kitto_spec.md";
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
