@@ -26,7 +26,7 @@ jobs:
       - name: 株式会社kitto プロジェクト稼働
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python kitto_engine_v2.py
+        run: python -u kitto_engine_v2.py
 
       - name: 納品物（仕様書・HTMLアプリ）をGitHubに自動保存
         run: |
