@@ -459,7 +459,7 @@
     return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
-  async function callGemini(prompt, jsonMode = false, onStatus = null) {
+ async function callGemini(prompt, jsonMode = false, onStatus = null, fastChat = false) {
     const key = (localStorage.getItem("kitto_gemini_key") || "").trim();
     if (!key) {
       openSettings();
@@ -468,22 +468,36 @@
     const model = modelSelect.value;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
 
+    const genConfig = {};
+    if (jsonMode) genConfig.responseMimeType = "application/json";
+    // チャット時は深い思考をオフにして1〜2秒で爆速返信させる
+    if (fastChat) genConfig.thinkingConfig = { thinkingBudget: 0 };
+
     const body = {
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: jsonMode ? { responseMimeType: "application/json" } : {}
+      generationConfig: genConfig
     };
 
-    for (let attempt = 1; attempt <= 4; attempt++) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25秒で強制タイムアウト
+
       let res;
       try {
         res = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
+          body: JSON.stringify(body),
+          signal: controller.signal
         });
       } catch (netErr) {
-        throw new Error("ネットワーク接続エラー: インターネット接続を確認してください。");
+        clearTimeout(timeoutId);
+        if (netErr.name === "AbortError") {
+          throw new Error("応答が25秒を超えたためタイムアウトしました。もう一度送信してください。");
+        }
+        throw new Error("通信エラーが発生しました。ネット接続を確認してください。");
       }
+      clearTimeout(timeoutId);
 
       if (res.ok) {
         const data = await res.json();
@@ -493,23 +507,89 @@
       }
 
       if (res.status === 429 || res.status === 503) {
-        const waitSec = attempt * 8;
-        if (onStatus) onStatus(`混雑のため待機中... (${waitSec}秒後に再試行 ${attempt}/4)`);
-        await new Promise(r => setTimeout(r, waitSec * 1000));
-        if (onStatus) onStatus("再試行中...");
-        continue;
+        if (attempt === 1) {
+          if (onStatus) onStatus("混雑のため3秒後に再試行...");
+          await new Promise(r => setTimeout(r, 3000));
+          continue;
+        }
+        throw new Error(`サーバー混雑・回数制限 (${res.status}) です。10秒ほど置いてから再送信してください。`);
       }
 
       const errText = await res.text();
+      if (res.status === 400 && errText.includes("thinking")) {
+        // モデルがthinkingBudget非対応だった場合は外して即再試行
+        delete body.generationConfig.thinkingConfig;
+        continue;
+      }
       if (res.status === 400 && errText.includes("API_KEY_INVALID")) {
         throw new Error("APIキーが無効です。右上の「設定」から正しいキーを入力してください。");
       }
-      if (res.status === 404) {
-        throw new Error(`モデル (${model}) が利用できません。設定から別モデルを選択してください。`);
-      }
-      throw new Error(`APIエラー (${res.status}): ${errText.slice(0, 140)}`);
+      throw new Error(`APIエラー (${res.status}): ${errText.slice(0, 120)}`);
     }
-    throw new Error("サーバー混雑によりタイムアウトしました。少し待ってから再試行してください。");
+  }
+
+  async function sendHearing() {
+    const input = document.getElementById("userInput");
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    addChat("user", text);
+    hearingHistory.push(`クライアント: ${text}`);
+
+    const btn = document.getElementById("sendBtn");
+    btn.disabled = true;
+    setPhaseBadge("応答待ち", "active");
+
+    let sec = 0;
+    showThinkingBubble("入力中... (0秒)");
+    const timer = setInterval(() => {
+      sec++;
+      updateThinkingBubble(`応答待ち... (${sec}秒)`);
+    }, 1000);
+
+    try {
+      const prompt = `あなたは開発スタジオ「kitto」のディレクターです。
+挨拶や自己紹介は一切省き、簡潔な日本語でクライアントの要件を深掘りしてください。
+
+これまでの会話：
+${hearingHistory.join("\n")}
+
+指示：
+1. 前置きなしで、本質的な確認事項（「誰が使うか」「一番重視する体験」「避けたい挙動」など）を2点だけ短く質問してください。
+2. 十分な情報が揃ったら、「要件が固まりました。下の『開発を開始する』から進められます。」と簡潔に伝え、ready_to_start を true にしてください。
+
+JSON形式のみで出力：
+{
+  "reply": "簡潔な返答",
+  "ready_to_start": true または false,
+  "compiled_request": "開発チームに渡す構造化された要件定義文"
+}`;
+      // 第4引数を true にして爆速モードで呼び出し
+      const raw = await callGemini(prompt, true, (statusMsg) => {
+        updateThinkingBubble(statusMsg);
+      }, true);
+
+      clearInterval(timer);
+      removeThinkingBubble();
+      const parsed = JSON.parse(raw);
+      addChat("ceo", parsed.reply);
+      hearingHistory.push(`ディレクター: ${parsed.reply}`);
+      finalizedSpecPrompt = parsed.compiled_request || hearingHistory.join("\n");
+
+      document.getElementById("launchBtn").disabled = false;
+      if (parsed.ready_to_start) {
+        setPhaseBadge("要件確定", "done");
+      } else {
+        setPhaseBadge("対話中", "active");
+      }
+    } catch (e) {
+      clearInterval(timer);
+      removeThinkingBubble();
+      setPhaseBadge("エラー", "danger");
+      addChat("error", e.message);
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   async function sendHearing() {
