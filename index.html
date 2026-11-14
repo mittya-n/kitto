@@ -398,37 +398,37 @@
         return;
       }
       const data = await res.json();
+      // 廃止済み(1.0/1.5/2.0/2.5)や特殊モデルを除外し、現役の最新世代モデルだけを残す
       const valid = (data.models || [])
         .filter(m =>
           m.supportedGenerationMethods?.includes("generateContent") &&
           m.name.includes("gemini") &&
-          !/embedding|imagen|veo|tts|audio|robotics|computer|vision|aqa|bisect|custom/i.test(m.name)
+          !/embedding|imagen|veo|tts|audio|robotics|computer|vision|aqa|bisect|custom|1\.0|1\.5|2\.0|2\.5/i.test(m.name)
         )
         .map(m => m.name.replace("models/", ""));
 
+      // チャット用：最速の flash-lite / flash を優先
       const scoreFast = (name) => {
         let s = 0;
-        if (name.includes("flash-lite")) s += 50;
-        else if (name.includes("flash")) s += 40;
-        if (name.includes("2.5") || name.includes("3.")) s += 20;
-        if (name.includes("latest")) s += 15;
-        if (name.includes("preview") || name.includes("exp")) s -= 10;
+        if (name.includes("flash-lite")) s += 60;
+        else if (name.includes("flash")) s += 50;
+        if (name.includes("latest")) s += 10;
         return s;
       };
+      // 設計・実装用：制限にかかりにくく高速な flash を最優先し、pro は予備に回す
       const scoreSmart = (name) => {
         let s = 0;
-        if (name.includes("pro")) s += 50;
-        else if (name.includes("flash") && !name.includes("lite")) s += 40;
-        if (name.includes("2.5") || name.includes("3.")) s += 20;
-        if (name.includes("latest")) s += 15;
-        if (name.includes("preview") || name.includes("exp")) s -= 5;
+        if (name.includes("flash") && !name.includes("lite")) s += 60;
+        else if (name.includes("flash-lite")) s += 50;
+        else if (name.includes("pro")) s += 30;
+        if (name.includes("latest")) s += 10;
         return s;
       };
 
       fastModels = [...valid].sort((a, b) => scoreFast(b) - scoreFast(a));
       smartModels = [...valid].sort((a, b) => scoreSmart(b) - scoreSmart(a));
 
-      keyStatus.textContent = fastModels.length > 0 ? "Auto Ready" : "モデルなし";
+      keyStatus.textContent = fastModels.length > 0 ? `Auto (${smartModels[0]})` : "モデルなし";
     } catch (e) {
       keyStatus.textContent = "オフライン";
     }
@@ -512,7 +512,7 @@
       throw new Error("利用可能なモデルが見つかりませんでした。APIキーの権限を確認してください。");
     }
 
-    const timeoutMs = mode === "fast" ? 15000 : 45000;
+    const timeoutMs = mode === "fast" ? 20000 : 90000; // 実装時は最大90秒までじっくり待つ
     let lastError = "";
 
     for (let i = 0; i < candidates.length; i++) {
