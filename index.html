@@ -7,7 +7,6 @@
   <style>
     :root {
       --bg: #f5f5f7;
-      --surface: rgba(255, 255, 255, 0.85);
       --surface-solid: #ffffff;
       --sub-surface: #f2f2f7;
       --border: rgba(0, 0, 0, 0.08);
@@ -32,7 +31,6 @@
       letter-spacing: -0.01em;
     }
 
-    /* ミニマルなすりガラスヘッダー */
     header {
       height: 52px;
       padding: 0 24px;
@@ -55,18 +53,9 @@
       align-items: baseline;
       gap: 8px;
     }
-    .brand span {
-      font-size: 0.78rem;
-      font-weight: 400;
-      color: var(--muted);
-    }
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    .brand span { font-size: 0.78rem; font-weight: 400; color: var(--muted); }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
 
-    /* ボタン＆インプット共通 */
     button {
       font-family: inherit;
       font-size: 0.85rem;
@@ -77,25 +66,11 @@
       cursor: pointer;
       transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
-    button.primary {
-      background: var(--accent);
-      color: #ffffff;
-    }
-    button.primary:hover:not(:disabled) {
-      background: var(--accent-hover);
-      transform: scale(1.01);
-    }
-    button.secondary {
-      background: var(--sub-surface);
-      color: var(--text);
-    }
-    button.secondary:hover:not(:disabled) {
-      background: #e5e5ea;
-    }
-    button:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-    }
+    button.primary { background: var(--accent); color: #ffffff; }
+    button.primary:hover:not(:disabled) { background: var(--accent-hover); transform: scale(1.01); }
+    button.secondary { background: var(--sub-surface); color: var(--text); }
+    button.secondary:hover:not(:disabled) { background: #e5e5ea; }
+    button:disabled { opacity: 0.35; cursor: not-allowed; }
 
     input, select, textarea {
       font-family: inherit;
@@ -113,7 +88,6 @@
       border-color: var(--accent);
     }
 
-    /* 3カラム・メインスタジオ */
     main {
       flex: 1;
       display: grid;
@@ -145,11 +119,7 @@
       justify-content: space-between;
       align-items: center;
     }
-    .card-title {
-      font-size: 0.92rem;
-      font-weight: 600;
-      color: var(--text);
-    }
+    .card-title { font-size: 0.92rem; font-weight: 600; color: var(--text); }
     .pill {
       font-size: 0.72rem;
       font-weight: 500;
@@ -157,15 +127,12 @@
       border-radius: 980px;
       background: var(--sub-surface);
       color: var(--muted);
+      transition: all 0.2s;
     }
-    .pill.active {
-      background: rgba(0, 113, 227, 0.1);
-      color: var(--accent);
-    }
-    .pill.done {
-      background: rgba(52, 199, 89, 0.12);
-      color: #248a3d;
-    }
+    .pill.active { background: rgba(0, 113, 227, 0.1); color: var(--accent); }
+    .pill.warn { background: rgba(255, 159, 10, 0.14); color: #b25000; }
+    .pill.danger { background: rgba(255, 59, 48, 0.12); color: var(--danger); }
+    .pill.done { background: rgba(52, 199, 89, 0.12); color: #248a3d; }
 
     .card-body {
       flex: 1;
@@ -176,7 +143,7 @@
       gap: 12px;
     }
 
-    /* チャットバブル（iMessage風ミニマル） */
+    /* チャットバブル */
     .msg {
       padding: 11px 15px;
       border-radius: 18px;
@@ -197,6 +164,42 @@
       align-self: flex-end;
       border-bottom-right-radius: 4px;
     }
+    .msg.error {
+      background: rgba(255, 59, 48, 0.08);
+      color: var(--danger);
+      border: 1px solid rgba(255, 59, 48, 0.2);
+      align-self: flex-start;
+      border-bottom-left-radius: 4px;
+      font-size: 0.84rem;
+    }
+
+    /* タイピングインジケーター（思考中表示） */
+    .typing-bubble {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 11px 16px;
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      background: var(--sub-surface);
+      color: var(--muted);
+      font-size: 0.82rem;
+      align-self: flex-start;
+    }
+    .dots { display: inline-flex; gap: 4px; }
+    .dots span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      animation: bounce 1.3s infinite ease-in-out both;
+    }
+    .dots span:nth-child(1) { animation-delay: -0.32s; }
+    .dots span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.5); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
 
     .composer {
       padding: 12px 16px 16px;
@@ -206,11 +209,7 @@
       gap: 10px;
       background: var(--surface-solid);
     }
-    .composer-row {
-      display: flex;
-      gap: 8px;
-      align-items: flex-end;
-    }
+    .composer-row { display: flex; gap: 8px; align-items: flex-end; }
     .composer-row textarea {
       flex: 1;
       resize: none;
@@ -232,7 +231,6 @@
       flex-shrink: 0;
     }
 
-    /* 開発ログアイテム */
     .log-entry {
       padding: 12px 14px;
       border-radius: 14px;
@@ -253,7 +251,6 @@
     .log-head.warn { color: #b25000; }
     .log-head.danger { color: var(--danger); }
 
-    /* 空状態（静かなプレースホルダー） */
     .empty-state {
       flex: 1;
       display: flex;
@@ -264,16 +261,8 @@
       text-align: center;
     }
 
-    /* 納品ブース */
-    .toolbar {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-    .toolbar button {
-      padding: 5px 12px;
-      font-size: 0.78rem;
-    }
+    .toolbar { display: flex; gap: 6px; align-items: center; }
+    .toolbar button { padding: 5px 12px; font-size: 0.78rem; }
     iframe {
       width: 100%;
       flex: 1;
@@ -283,7 +272,6 @@
       min-height: 380px;
     }
 
-    /* 設定モーダル */
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -420,6 +408,12 @@
   let generatedHtml = "";
   let generatedMd = "";
 
+  function setPhaseBadge(text, type = "active") {
+    const b = document.getElementById("phaseBadge");
+    b.textContent = text;
+    b.className = "pill " + type;
+  }
+
   function addChat(role, text) {
     const box = document.getElementById("chatBox");
     const div = document.createElement("div");
@@ -427,6 +421,28 @@
     div.textContent = text;
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
+  }
+
+  // 思考中バブルの表示・更新・削除
+  function showThinkingBubble(initialText = "思考中...") {
+    removeThinkingBubble();
+    const box = document.getElementById("chatBox");
+    const div = document.createElement("div");
+    div.id = "thinkingBubble";
+    div.className = "typing-bubble";
+    div.innerHTML = `<div class="dots"><span></span><span></span><span></span></div><span id="thinkingLabel">${initialText}</span>`;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function updateThinkingBubble(text) {
+    const label = document.getElementById("thinkingLabel");
+    if (label) label.textContent = text;
+  }
+
+  function removeThinkingBubble() {
+    const el = document.getElementById("thinkingBubble");
+    if (el) el.remove();
   }
 
   function addLog(title, body, tone = "") {
@@ -443,11 +459,11 @@
     return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
-  async function callGemini(prompt, jsonMode = false) {
+  async function callGemini(prompt, jsonMode = false, onStatus = null) {
     const key = (localStorage.getItem("kitto_gemini_key") || "").trim();
     if (!key) {
       openSettings();
-      throw new Error("先に設定からAPIキーを登録してください。");
+      throw new Error("先に右上の「設定」からAPIキーを登録してください。");
     }
     const model = modelSelect.value;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
@@ -458,24 +474,42 @@
     };
 
     for (let attempt = 1; attempt <= 4; attempt++) {
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
+      let res;
+      try {
+        res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+      } catch (netErr) {
+        throw new Error("ネットワーク接続エラー: インターネット接続を確認してください。");
+      }
+
       if (res.ok) {
         const data = await res.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error("AIからの応答が空でした。もう一度送信してください。");
+        return text;
       }
+
       if (res.status === 429 || res.status === 503) {
-        addLog("待機中", `混雑回避のため ${attempt * 8} 秒後に再試行します`, "warn");
-        await new Promise(r => setTimeout(r, attempt * 8000));
+        const waitSec = attempt * 8;
+        if (onStatus) onStatus(`混雑のため待機中... (${waitSec}秒後に再試行 ${attempt}/4)`);
+        await new Promise(r => setTimeout(r, waitSec * 1000));
+        if (onStatus) onStatus("再試行中...");
         continue;
       }
+
       const errText = await res.text();
+      if (res.status === 400 && errText.includes("API_KEY_INVALID")) {
+        throw new Error("APIキーが無効です。右上の「設定」から正しいキーを入力してください。");
+      }
+      if (res.status === 404) {
+        throw new Error(`モデル (${model}) が利用できません。設定から別モデルを選択してください。`);
+      }
       throw new Error(`APIエラー (${res.status}): ${errText.slice(0, 140)}`);
     }
-    throw new Error("現在サーバーが混み合っています。少し時間を置いてお試しください。");
+    throw new Error("サーバー混雑によりタイムアウトしました。少し待ってから再試行してください。");
   }
 
   async function sendHearing() {
@@ -488,6 +522,9 @@
 
     const btn = document.getElementById("sendBtn");
     btn.disabled = true;
+    setPhaseBadge("思考中...", "active");
+    showThinkingBubble("思考中...");
+
     try {
       const prompt = `あなたは開発スタジオ「kitto」のディレクターです。
 挨拶や自己紹介（「ようこそ」「Kuroです」など）は一切省き、洗練された簡潔な日本語でクライアントの要件を深掘りしてください。
@@ -505,7 +542,12 @@ JSON形式のみで出力：
   "ready_to_start": true または false,
   "compiled_request": "開発チームに渡す構造化された要件定義文"
 }`;
-      const raw = await callGemini(prompt, true);
+      const raw = await callGemini(prompt, true, (statusMsg) => {
+        setPhaseBadge("待機中...", "warn");
+        updateThinkingBubble(statusMsg);
+      });
+
+      removeThinkingBubble();
       const parsed = JSON.parse(raw);
       addChat("ceo", parsed.reply);
       hearingHistory.push(`ディレクター: ${parsed.reply}`);
@@ -513,12 +555,14 @@ JSON形式のみで出力：
 
       document.getElementById("launchBtn").disabled = false;
       if (parsed.ready_to_start) {
-        const badge = document.getElementById("phaseBadge");
-        badge.textContent = "確定";
-        badge.className = "pill done";
+        setPhaseBadge("要件確定", "done");
+      } else {
+        setPhaseBadge("対話中", "active");
       }
     } catch (e) {
-      addChat("ceo", e.message);
+      removeThinkingBubble();
+      setPhaseBadge("エラー", "danger");
+      addChat("error", "⚠️ " + e.message);
     } finally {
       btn.disabled = false;
     }
@@ -531,6 +575,12 @@ JSON形式のみで出力：
     document.getElementById("officeLogs").innerHTML = "";
     statusBadge.textContent = "進行中";
     statusBadge.className = "pill active";
+
+    const logRetry = (msg) => {
+      statusBadge.textContent = "待機中";
+      statusBadge.className = "pill warn";
+      addLog("リトライ待機", msg, "warn");
+    };
 
     try {
       addLog("チーム編成", "要件に最適なスペシャリスト3名を選出しています...", "accent");
@@ -546,7 +596,7 @@ JSON形式のみで出力：
     {"name": "氏名", "role": "役職", "personality": "思考スタイル", "mission": "担当領域"}
   ]
 }`;
-      const plan = JSON.parse(await callGemini(hirePrompt, true));
+      const plan = JSON.parse(await callGemini(hirePrompt, true, logRetry));
       let teamSummary = `コンセプト：${plan.project_vision}\n\n`;
       plan.employees.forEach(e => {
         teamSummary += `・${e.name}（${e.role}）— ${e.mission}\n`;
@@ -559,6 +609,7 @@ JSON形式のみで出力：
 
       for (let round = 1; round <= 2; round++) {
         statusBadge.textContent = `Round ${round}`;
+        statusBadge.className = "pill active";
         let drafts = [];
         for (const emp of plan.employees) {
           addLog(`${emp.name}（${emp.role}）`, "設計案を作成中...");
@@ -566,7 +617,7 @@ JSON形式のみで出力：
 担当：${emp.mission} / コンセプト：${plan.project_vision}
 要件：${finalizedSpecPrompt}
 ${feedback ? `【監査指摘】\n${feedback}\n【現行仕様】\n${unifiedSpec}\n指摘を反映した改善案を出してください。` : "専門視点から具体的な設計案を提案してください。"}`;
-          const res = await callGemini(empPrompt, false);
+          const res = await callGemini(empPrompt, false, logRetry);
           drafts.push(`### ${emp.name}（${emp.role}）\n${res}`);
         }
 
@@ -575,7 +626,7 @@ ${feedback ? `【監査指摘】\n${feedback}\n【現行仕様】\n${unifiedSpec
 メンバー：${plan.employees.map(e => `\${e.name}(${e.role})`).join(" / ")} 各案： ${drafts.join("\n\n")} ${feedback ? `解決すべき指摘：${feedback}` : ""}
 
 「## 第1部：レビュー議論」と「## 第2部：完全統一システム仕様書（JSONスキーマ・対話規則・状態遷移・UI設計）」の2部構成で出力してください。`;
-        unifiedSpec = await callGemini(meetingPrompt, false);
+        unifiedSpec = await callGemini(meetingPrompt, false, logRetry);
         addLog(`Round ${round} 仕様統合完了`, unifiedSpec.slice(0, 450) + "\n...");
         allLogs.push(`## Round ${round}\n\n${unifiedSpec}`);
 
@@ -587,7 +638,7 @@ ${unifiedSpec}
 
 JSON形式のみで出力：
 {"score": 数値, "is_approved": true/false, "critique": "講評", "revision_instructions": "修正指示"}`;
-        const audit = JSON.parse(await callGemini(auditPrompt, true));
+        const audit = JSON.parse(await callGemini(auditPrompt, true, logRetry));
         addLog(`監査結果：${audit.score}点（${audit.is_approved ? "承認" : "差し戻し"}）`, `${audit.critique}${audit.is_approved ? "" : "\n修正指示：" + audit.revision_instructions}`, audit.is_approved ? "accent" : "danger");
 
         if (audit.is_approved) break;
@@ -595,6 +646,7 @@ JSON形式のみで出力：
       }
 
       statusBadge.textContent = "ビルド中";
+      statusBadge.className = "pill active";
       addLog("実装フェーズ", "承認された仕様からアプリケーションを生成しています...", "accent");
       const buildPrompt = `あなたはリードエンジニアです。以下の完全統一仕様書をもとに、ブラウザで動作するWebアプリをHTML/CSS/JavaScriptの単一ファイルとして実装してください。
 【要件】
@@ -606,7 +658,7 @@ JSON形式のみで出力：
 ${unifiedSpec}
 
 説明文は一切書かず、<!DOCTYPE html> から </html> までの完全なHTMLコードのみを出力してください。`;
-      let htmlOut = await callGemini(buildPrompt, false);
+      let htmlOut = await callGemini(buildPrompt, false, logRetry);
       htmlOut = htmlOut.replace(/^```html\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
 
       generatedHtml = htmlOut;
@@ -626,8 +678,9 @@ ${unifiedSpec}
       addLog("完了", "アウトプットにプロダクトを納品しました。", "accent");
 
     } catch (e) {
-      addLog("エラー", e.message, "danger");
-      statusBadge.textContent = "停止";
+      addLog("エラー停止", e.message, "danger");
+      statusBadge.textContent = "エラー";
+      statusBadge.className = "pill danger";
     } finally {
       launchBtn.disabled = false;
     }
