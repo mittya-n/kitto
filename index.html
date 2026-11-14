@@ -384,7 +384,7 @@
   let fastModels = [];
   let smartModels = [];
 
-  async function initAutoModels() {
+async function initAutoModels() {
     const key = (localStorage.getItem("kitto_gemini_key") || "").trim();
     if (!key) {
       keyStatus.textContent = "APIキー未設定";
@@ -398,16 +398,15 @@
         return;
       }
       const data = await res.json();
-      // 廃止済み(1.0/1.5/2.0/2.5)や特殊モデルを除外し、現役の最新世代モデルだけを残す
+      // image系も除外し、純粋なテキスト生成モデルだけを残す
       const valid = (data.models || [])
         .filter(m =>
           m.supportedGenerationMethods?.includes("generateContent") &&
           m.name.includes("gemini") &&
-          !/embedding|imagen|veo|tts|audio|robotics|computer|vision|aqa|bisect|custom|1\.0|1\.5|2\.0|2\.5/i.test(m.name)
+          !/embedding|imagen|image|veo|tts|audio|robotics|computer|vision|aqa|bisect|custom|1\.0|1\.5|2\.0|2\.5/i.test(m.name)
         )
         .map(m => m.name.replace("models/", ""));
 
-      // チャット用：最速の flash-lite / flash を優先
       const scoreFast = (name) => {
         let s = 0;
         if (name.includes("flash-lite")) s += 60;
@@ -415,11 +414,10 @@
         if (name.includes("latest")) s += 10;
         return s;
       };
-      // 設計・実装用：制限にかかりにくく高速な flash を最優先し、pro は予備に回す
       const scoreSmart = (name) => {
         let s = 0;
-        if (name.includes("flash") && !name.includes("lite")) s += 60;
-        else if (name.includes("flash-lite")) s += 50;
+        if (name.includes("flash-lite")) s += 65; // 制限に強く安定しているflash-liteを最優先
+        else if (name.includes("flash")) s += 55;
         else if (name.includes("pro")) s += 30;
         if (name.includes("latest")) s += 10;
         return s;
@@ -499,7 +497,7 @@
     return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
-  async function callGemini(prompt, jsonMode = false, onStatus = null, mode = "smart") {
+async function callGemini(prompt, jsonMode = false, onStatus = null, mode = "smart") {
     const key = (localStorage.getItem("kitto_gemini_key") || "").trim();
     if (!key) {
       openSettings();
@@ -507,12 +505,12 @@
     }
     if (fastModels.length === 0) await initAutoModels();
 
-    const candidates = (mode === "fast" ? fastModels : smartModels).slice(0, 4);
+    const candidates = (mode === "fast" ? fastModels : smartModels).slice(0, 3);
     if (candidates.length === 0) {
-      throw new Error("利用可能なモデルが見つかりませんでした。APIキーの権限を確認してください。");
+      throw new Error("利用可能なモデルが見つかりませんでした。");
     }
 
-    const timeoutMs = mode === "fast" ? 20000 : 90000; // 実装時は最大90秒までじっくり待つ
+    const timeoutMs = mode === "fast" ? 20000 : 90000;
     let lastError = "";
 
     for (let i = 0; i < candidates.length; i++) {
@@ -527,29 +525,38 @@
         generationConfig: jsonMode ? { responseMimeType: "application/json" } : {}
       };
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      // 各モデルで最大2回試行（429レート制限時は20秒休憩して回復を待つ）
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
 
-        if (res.ok) {
-          const data = await res.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) return text;
-        } else {
-          const errText = await res.text();
-          lastError = `${model}: ${res.status} ${errText.slice(0, 80)}`;
+          if (res.ok) {
+            const data = await res.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) return text;
+          } else if (res.status === 429 && attempt === 1) {
+            if (onStatus) onStatus(`回数制限のため20秒待機して再開します (${model})...`);
+            await new Promise(r => setTimeout(r, 20000));
+            continue;
+          } else {
+            const errText = await res.text();
+            lastError = `${model}: ${res.status} ${errText.slice(0, 80)}`;
+            break;
+          }
+        } catch (e) {
+          clearTimeout(timeoutId);
+          lastError = `${model}: 応答タイムアウト`;
+          break;
         }
-      } catch (e) {
-        clearTimeout(timeoutId);
-        lastError = `${model}: 応答タイムアウト`;
       }
     }
     throw new Error(`全候補モデルで応答を得られませんでした（詳細: ${lastError}）`);
