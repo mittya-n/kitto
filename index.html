@@ -386,23 +386,63 @@
   const modelSelect = document.getElementById("modelSelect");
   const keyStatus = document.getElementById("keyStatus");
 
-  function updateKeyStatus() {
-    const k = localStorage.getItem("kitto_gemini_key");
-    keyStatus.textContent = k ? `${modelSelect.value}` : "APIキー未設定";
-  }
-
   apiKeyInput.value = localStorage.getItem("kitto_gemini_key") || "";
-  if (localStorage.getItem("kitto_model")) modelSelect.value = localStorage.getItem("kitto_model");
-  updateKeyStatus();
+
+  // APIキーから利用可能なモデル一覧を自動取得してプルダウンに反映する
+  async function loadAvailableModels() {
+    const key = (localStorage.getItem("kitto_gemini_key") || "").trim();
+    if (!key) {
+      keyStatus.textContent = "APIキー未設定";
+      return;
+    }
+    keyStatus.textContent = "モデル確認中...";
+    try {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`);
+      if (!res.ok) {
+        const err = await res.json();
+        keyStatus.textContent = "キーエラー";
+        alert("APIキーの確認に失敗しました: " + (err.error?.message || res.status));
+        return;
+      }
+      const data = await res.json();
+      const models = (data.models || [])
+        .filter(m => m.supportedGenerationMethods?.includes("generateContent") && m.name.includes("gemini"))
+        .map(m => m.name.replace("models/", ""));
+
+      if (models.length > 0) {
+        modelSelect.innerHTML = "";
+        models.sort((a, b) => (b.includes("flash") ? 1 : 0) - (a.includes("flash") ? 1 : 0));
+        models.forEach(m => {
+          const opt = document.createElement("option");
+          opt.value = m;
+          opt.textContent = m;
+          modelSelect.appendChild(opt);
+        });
+        const saved = localStorage.getItem("kitto_model");
+        if (saved && models.includes(saved)) {
+          modelSelect.value = saved;
+        } else {
+          const bestFlash = models.find(m => m.includes("flash") && !m.includes("8b")) || models[0];
+          modelSelect.value = bestFlash;
+          localStorage.setItem("kitto_model", bestFlash);
+        }
+        keyStatus.textContent = modelSelect.value;
+      }
+    } catch (e) {
+      keyStatus.textContent = "通信エラー";
+    }
+  }
 
   function openSettings() { document.getElementById("settingsModal").style.display = "flex"; }
   function closeSettings() { document.getElementById("settingsModal").style.display = "none"; }
-  function saveKey() {
+  async function saveKey() {
     localStorage.setItem("kitto_gemini_key", apiKeyInput.value.trim());
     localStorage.setItem("kitto_model", modelSelect.value);
-    updateKeyStatus();
     closeSettings();
+    await loadAvailableModels();
   }
+
+  loadAvailableModels();
 
   let hearingHistory = [];
   let finalizedSpecPrompt = "";
@@ -424,7 +464,6 @@
     box.scrollTop = box.scrollHeight;
   }
 
-  // 思考中バブルの表示・更新・削除
   function showThinkingBubble(initialText = "思考中...") {
     removeThinkingBubble();
     const box = document.getElementById("chatBox");
@@ -460,7 +499,7 @@
     return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
- async function callGemini(prompt, jsonMode = false, onStatus = null, fastChat = false) {
+  async function callGemini(prompt, jsonMode = false, onStatus = null) {
     const key = (localStorage.getItem("kitto_gemini_key") || "").trim();
     if (!key) {
       openSettings();
@@ -469,64 +508,40 @@
     const model = modelSelect.value;
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(key)}`;
 
-    const genConfig = {};
-    if (jsonMode) genConfig.responseMimeType = "application/json";
-    // チャット時は深い思考をオフにして1〜2秒で爆速返信させる
-    if (fastChat) genConfig.thinkingConfig = { thinkingBudget: 0 };
-
     const body = {
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: genConfig
+      generationConfig: jsonMode ? { responseMimeType: "application/json" } : {}
     };
 
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒で強制タイムアウト
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-      let res;
-      try {
-        res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-          signal: controller.signal
-        });
-      } catch (netErr) {
-        clearTimeout(timeoutId);
-        if (netErr.name === "AbortError") {
-          throw new Error("応答が60秒を超えたためタイムアウトしました。もう一度送信してください。");
-        }
-        throw new Error("通信エラーが発生しました。ネット接続を確認してください。");
-      }
+    let res;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
+    } catch (netErr) {
       clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!text) throw new Error("AIからの応答が空でした。もう一度送信してください。");
-        return text;
+      if (netErr.name === "AbortError") {
+        throw new Error(`モデル (${model}) の応答が30秒を超えました。右上の「設定」から別のモデルに切り替えてみてください。`);
       }
-
-      if (res.status === 429 || res.status === 503) {
-        if (attempt === 1) {
-          if (onStatus) onStatus("混雑のため3秒後に再試行...");
-          await new Promise(r => setTimeout(r, 3000));
-          continue;
-        }
-        throw new Error(`サーバー混雑・回数制限 (${res.status}) です。10秒ほど置いてから再送信してください。`);
-      }
-
-      const errText = await res.text();
-      if (res.status === 400 && errText.includes("thinking")) {
-        // モデルがthinkingBudget非対応だった場合は外して即再試行
-        delete body.generationConfig.thinkingConfig;
-        continue;
-      }
-      if (res.status === 400 && errText.includes("API_KEY_INVALID")) {
-        throw new Error("APIキーが無効です。右上の「設定」から正しいキーを入力してください。");
-      }
-      throw new Error(`APIエラー (${res.status}): ${errText.slice(0, 120)}`);
+      throw new Error("通信エラーが発生しました: " + netErr.message);
     }
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`APIエラー (${res.status}): ${errText.slice(0, 160)}`);
+    }
+
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) throw new Error("AIからの応答が空でした。");
+    return text;
   }
 
   async function sendHearing() {
@@ -542,7 +557,7 @@
     setPhaseBadge("応答待ち", "active");
 
     let sec = 0;
-    showThinkingBubble("入力中... (0秒)");
+    showThinkingBubble("応答待ち... (0秒)");
     const timer = setInterval(() => {
       sec++;
       updateThinkingBubble(`応答待ち... (${sec}秒)`);
@@ -556,91 +571,28 @@
 ${hearingHistory.join("\n")}
 
 指示：
-1. 前置きなしで、本質的な確認事項（「誰が使うか」「一番重視する体験」「避けたい挙動」など）を2点だけ短く質問してください。
-2. 十分な情報が揃ったら、「要件が固まりました。下の『開発を開始する』から進められます。」と簡潔に伝え、ready_to_start を true にしてください。
+1. 本質的な確認事項（「誰が使うか」「一番重視する体験」「避けたい挙動」など）を2点だけ短く質問してください。
+2. 十分な情報が揃ったら、「要件が固まりました。下の『開発を開始する』から進められます。」と伝え、最後に [READY] とだけ付けてください。`;
 
-JSON形式のみで出力：
-{
-  "reply": "簡潔な返答",
-  "ready_to_start": true または false,
-  "compiled_request": "開発チームに渡す構造化された要件定義文"
-}`;
-      // 第4引数を true にして爆速モードで呼び出し
-      const raw = await callGemini(prompt, true, (statusMsg) => {
-        updateThinkingBubble(statusMsg);
-      }, true);
-
+      const replyText = await callGemini(prompt, false);
       clearInterval(timer);
       removeThinkingBubble();
-      const parsed = JSON.parse(raw);
-      addChat("ceo", parsed.reply);
-      hearingHistory.push(`ディレクター: ${parsed.reply}`);
-      finalizedSpecPrompt = parsed.compiled_request || hearingHistory.join("\n");
+
+      const isReady = replyText.includes("[READY]");
+      const cleanReply = replyText.replace("[READY]", "").trim();
+
+      addChat("ceo", cleanReply);
+      hearingHistory.push(`ディレクター: ${cleanReply}`);
+      finalizedSpecPrompt = hearingHistory.join("\n");
 
       document.getElementById("launchBtn").disabled = false;
-      if (parsed.ready_to_start) {
+      if (isReady) {
         setPhaseBadge("要件確定", "done");
       } else {
         setPhaseBadge("対話中", "active");
       }
     } catch (e) {
       clearInterval(timer);
-      removeThinkingBubble();
-      setPhaseBadge("エラー", "danger");
-      addChat("error", e.message);
-    } finally {
-      btn.disabled = false;
-    }
-  }
-
-  async function sendHearing() {
-    const input = document.getElementById("userInput");
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = "";
-    addChat("user", text);
-    hearingHistory.push(`クライアント: ${text}`);
-
-    const btn = document.getElementById("sendBtn");
-    btn.disabled = true;
-    setPhaseBadge("思考中...", "active");
-    showThinkingBubble("思考中...");
-
-    try {
-      const prompt = `あなたは開発スタジオ「kitto」のディレクターです。
-挨拶や自己紹介（「ようこそ」「Kuroです」など）は一切省き、洗練された簡潔な日本語でクライアントの要件を深掘りしてください。
-
-これまでの会話：
-${hearingHistory.join("\n")}
-
-指示：
-1. 余計な前置きなしで、本質的な確認事項（「誰が使うか」「一番重視する体験」「避けたい挙動」など）を2点ほど短く問いかけてください。
-2. 十分な情報が揃ったら、「要件が固まりました。下の『開発を開始する』から進められます。」と簡潔に伝え、ready_to_start を true にしてください。
-
-JSON形式のみで出力：
-{
-  "reply": "簡潔な返答",
-  "ready_to_start": true または false,
-  "compiled_request": "開発チームに渡す構造化された要件定義文"
-}`;
-      const raw = await callGemini(prompt, true, (statusMsg) => {
-        setPhaseBadge("待機中...", "warn");
-        updateThinkingBubble(statusMsg);
-      });
-
-      removeThinkingBubble();
-      const parsed = JSON.parse(raw);
-      addChat("ceo", parsed.reply);
-      hearingHistory.push(`ディレクター: ${parsed.reply}`);
-      finalizedSpecPrompt = parsed.compiled_request || hearingHistory.join("\n");
-
-      document.getElementById("launchBtn").disabled = false;
-      if (parsed.ready_to_start) {
-        setPhaseBadge("要件確定", "done");
-      } else {
-        setPhaseBadge("対話中", "active");
-      }
-    } catch (e) {
       removeThinkingBubble();
       setPhaseBadge("エラー", "danger");
       addChat("error", "⚠️ " + e.message);
@@ -648,7 +600,7 @@ JSON形式のみで出力：
       btn.disabled = false;
     }
   }
-
+  
   async function startProject() {
     const launchBtn = document.getElementById("launchBtn");
     const statusBadge = document.getElementById("statusBadge");
